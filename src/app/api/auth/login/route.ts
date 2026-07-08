@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword, generateToken } from '@/lib/auth'
 
@@ -37,17 +36,16 @@ export async function POST(request: NextRequest) {
       data: { userId: user.id, success: true },
     })
 
-    const cookieStore = await cookies()
-    cookieStore.set('lcg_token', token, {
+    const { password: _, ...userWithoutPassword } = user
+    const response = NextResponse.json({ user: userWithoutPassword, token })
+    response.cookies.set('lcg_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24,
       path: '/',
     })
-
-    const { password: _, ...userWithoutPassword } = user
-    return NextResponse.json({ user: userWithoutPassword, token })
+    return response
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
