@@ -22,7 +22,7 @@ export default function LoginPage() {
     setLoading(true)
     const success = await login(username, password)
     setLoading(false)
-    if (success) window.location.href = '/dashboard'
+    if (success) { router.push('/dashboard'); return }
   }
 
   return (
