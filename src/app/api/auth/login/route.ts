@@ -1,0 +1,55 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
+import { verifyPassword, generateToken } from '@/lib/auth'
+
+export async function POST(request: NextRequest) {
+  try {
+    const { username, password } = await request.json()
+    if (!username || !password) {
+      return NextResponse.json({ error: 'Identifiants requis' }, { status: 400 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: { pointOfSale: true },
+    })
+    if (!user) {
+      return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 })
+    }
+    if (!user.isActive) {
+      return NextResponse.json({ error: 'Compte désactivé' }, { status: 403 })
+    }
+
+    const valid = await verifyPassword(password, user.password)
+    if (!valid) {
+      return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 })
+    }
+
+    const token = generateToken({ id: user.id, username: user.username, role: user.role })
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    })
+
+    await prisma.loginLog.create({
+      data: { userId: user.id, success: true },
+    })
+
+    const cookieStore = await cookies()
+    cookieStore.set('lcg_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24,
+      path: '/',
+    })
+
+    const { password: _, ...userWithoutPassword } = user
+    return NextResponse.json({ user: userWithoutPassword, token })
+  } catch (error) {
+    console.error('Login error:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}

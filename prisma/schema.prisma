@@ -1,0 +1,532 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  email         String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          String   @default("CAISSIER")
+  isActive      Boolean  @default(true)
+  pointOfSaleId Int?
+  pointOfSale   PointOfSale? @relation(fields: [pointOfSaleId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+
+  sales              Sale[]
+  payments           Payment[]
+  productions        ProductionBatch[]
+  distributions      Distribution[]
+  deliveryNotes      DeliveryNote[]
+  reservations       Reservation[]
+  orders             Order[]
+  cashSessions       CashRegisterSession[]
+  cashMovements      CashMovement[]
+  stockMovements     StockMovement[]
+  inventories        Inventory[]
+  auditLogs          AuditLog[]
+  loginLogs          LoginLog[]
+  alerts             Alert[]
+  validatedDistributions Distribution[] @relation("ValidatedBy")
+  receivedDeliveries     DeliveryNote[] @relation("ReceivedBy")
+
+  @@map("users")
+}
+
+model PointOfSale {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  address   String?
+  city      String   @default("Brazzaville")
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users             User[]
+  sales             Sale[]
+  inventories       Inventory[]
+  stockAtLocation   StockAtLocation[]
+  caisses           Caisse[]
+  reservations      Reservation[]
+  orders            Order[]
+  stockMovements      StockMovement[]
+  destDeliveryNotes    DeliveryNote[]
+
+  @@map("points_of_sale")
+}
+
+model Depot {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  address   String?
+  city      String   @default("Brazzaville")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stockAtLocation       StockAtLocation[]
+  productionDestinations ProductionBatch[] @relation("ProductionDestination")
+  distributions         Distribution[]
+  sourceDeliveryNotes   DeliveryNote[]     @relation("DeliveryOrigin")
+  destDeliveryNotes     DeliveryNote[]     @relation("DeliveryDestination")
+  stockMovements  StockMovement[]
+
+  @@map("depots")
+}
+
+model Caisse {
+  id            Int      @id @default(autoincrement())
+  name          String
+  code          String   @unique
+  pointOfSaleId Int
+  pointOfSale   PointOfSale @relation(fields: [pointOfSaleId], references: [id])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions CashRegisterSession[]
+
+  @@map("caisses")
+}
+
+model ProductCategory {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id              Int     @id @default(autoincrement())
+  name            String
+  slug            String  @unique
+  type            String
+  categoryId      Int
+  category        ProductCategory @relation(fields: [categoryId], references: [id])
+  description     String?
+  unit            String  @default("sac")
+  priceParticulier  Float @default(0)
+  priceProfessionnel Float @default(0)
+  priceGrossiste    Float @default(0)
+  minStockLevel   Int     @default(0)
+  conservationDuration Int? @default(48)
+  isActive        Boolean @default(true)
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  saleItems         SaleItem[]
+  stockAtLocation   StockAtLocation[]
+  stockMovements    StockMovement[]
+  productionBatches ProductionBatch[]
+  inventories       Inventory[]
+  distributionItems DistributionItem[]
+  deliveryNoteItems DeliveryNoteItem[]
+  reservationItems  ReservationItem[]
+  orderItems        OrderItem[]
+
+  @@map("products")
+}
+
+model Client {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String   @default("PARTICULIER")
+  phone       String?
+  email       String?
+  address     String?
+  city        String   @default("Brazzaville")
+  creditBalance Float  @default(0)
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sales        Sale[]
+  reservations Reservation[]
+  orders       Order[]
+
+  @@map("clients")
+}
+
+model Sale {
+  id            Int      @id @default(autoincrement())
+  reference     String   @unique
+  pointOfSaleId Int
+  pointOfSale   PointOfSale @relation(fields: [pointOfSaleId], references: [id])
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  clientId      Int?
+  client        Client?  @relation(fields: [clientId], references: [id])
+  status        String   @default("COMPTANT")
+  subtotal      Float    @default(0)
+  discount      Float    @default(0)
+  discountLabel String?
+  total         Float    @default(0)
+  paidAmount    Float    @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items        SaleItem[]
+  payments     Payment[]
+  stockMovements StockMovement[]
+  cashSessionId Int?
+  cashSession   CashRegisterSession? @relation(fields: [cashSessionId], references: [id])
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  unitPrice Float   @default(0)
+  total     Float   @default(0)
+
+  @@map("sale_items")
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  saleId    Int
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  amount    Float    @default(0)
+  method    String   @default("ESPECES")
+  reference String?
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  receivedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("payments")
+}
+
+model StockAtLocation {
+  id          Int  @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  pointOfSaleId Int?
+  pointOfSale PointOfSale? @relation(fields: [pointOfSaleId], references: [id])
+  depotId     Int?
+  depot       Depot?   @relation(fields: [depotId], references: [id])
+  quantity    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, pointOfSaleId, depotId])
+  @@map("stock_at_location")
+}
+
+model StockMovement {
+  id            Int      @id @default(autoincrement())
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id])
+  type          String
+  quantity      Int
+  pointOfSaleId Int?
+  pointOfSale   PointOfSale? @relation(fields: [pointOfSaleId], references: [id])
+  depotId       Int?
+  depot         Depot?       @relation(fields: [depotId], references: [id])
+  saleId        Int?
+  sale          Sale?        @relation(fields: [saleId], references: [id])
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id])
+  reason        String?
+  reference     String?
+  batchNumber   String?
+  createdAt     DateTime     @default(now())
+
+  @@map("stock_movements")
+}
+
+model Inventory {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  pointOfSaleId Int?
+  pointOfSale PointOfSale? @relation(fields: [pointOfSaleId], references: [id])
+  theoreticalQty Int   @default(0)
+  actualQty    Int     @default(0)
+  difference   Int     @default(0)
+  reason       String?
+  locationType String?
+  locationName String?
+  userId       Int
+  user         User    @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@map("inventories")
+}
+
+model ProductionBatch {
+  id             Int      @id @default(autoincrement())
+  batchNumber    String   @unique
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id])
+  quantityProduced Int    @default(0)
+  quantityLost   Int      @default(0)
+  notes          String?
+  productionDate DateTime @default(now())
+  destinationDepotId Int?
+  destinationDepot   Depot? @relation("ProductionDestination", fields: [destinationDepotId], references: [id])
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  isDistributed  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  distributions Distribution[]
+
+  @@map("production_batches")
+}
+
+model Distribution {
+  id              Int      @id @default(autoincrement())
+  reference       String   @unique
+  batchId         Int?
+  batch           ProductionBatch? @relation(fields: [batchId], references: [id])
+  sourceDepotId   Int
+  sourceDepot     Depot    @relation(fields: [sourceDepotId], references: [id])
+  status          String   @default("EN_PREPARATION")
+  notes           String?
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  validatedById   Int?
+  validatedBy     User?    @relation("ValidatedBy", fields: [validatedById], references: [id])
+  validatedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items     DistributionItem[]
+  deliveries DeliveryNote[]
+
+  @@map("distributions")
+}
+
+model DistributionItem {
+  id             Int  @id @default(autoincrement())
+  distributionId Int
+  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  productId      Int
+  product        Product @relation(fields: [productId], references: [id])
+  quantitySent   Int    @default(0)
+  quantityReceived Int? @default(0)
+  difference     Int    @default(0)
+
+  @@map("distribution_items")
+}
+
+model DeliveryNote {
+  id             Int      @id @default(autoincrement())
+  reference      String   @unique
+  distributionId Int?
+  distribution   Distribution? @relation(fields: [distributionId], references: [id])
+  sourceDepotId  Int
+  sourceDepot    Depot    @relation("DeliveryOrigin", fields: [sourceDepotId], references: [id])
+  destDepotId    Int?
+  destDepot      Depot?   @relation("DeliveryDestination", fields: [destDepotId], references: [id])
+  destPointOfSaleId Int?
+  destPointOfSale   PointOfSale? @relation(fields: [destPointOfSaleId], references: [id])
+  clientName     String?
+  clientPhone    String?
+  clientAddress  String?
+  status         String   @default("EN_PREPARATION")
+  notes          String?
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  receivedById   Int?
+  receivedBy     User?    @relation("ReceivedBy", fields: [receivedById], references: [id])
+  receivedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items DeliveryNoteItem[]
+
+  @@map("delivery_notes")
+}
+
+model DeliveryNoteItem {
+  id             Int  @id @default(autoincrement())
+  deliveryNoteId Int
+  deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  productId      Int
+  product        Product @relation(fields: [productId], references: [id])
+  quantity       Int    @default(0)
+  quantityReceived Int? @default(0)
+  difference     Int    @default(0)
+
+  @@map("delivery_note_items")
+}
+
+model Reservation {
+  id            Int      @id @default(autoincrement())
+  reference     String   @unique
+  clientId      Int
+  client        Client   @relation(fields: [clientId], references: [id])
+  pointOfSaleId Int
+  pointOfSale   PointOfSale @relation(fields: [pointOfSaleId], references: [id])
+  status        String   @default("EN_ATTENTE")
+  scheduledDate DateTime
+  scheduledTime String?
+  notes         String?
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items ReservationItem[]
+
+  @@map("reservations")
+}
+
+model ReservationItem {
+  id            Int  @id @default(autoincrement())
+  reservationId Int
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  productId     Int
+  product       Product @relation(fields: [productId], references: [id])
+  quantity      Int     @default(1)
+
+  @@map("reservation_items")
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  reference     String   @unique
+  clientId      Int
+  client        Client   @relation(fields: [clientId], references: [id])
+  pointOfSaleId Int
+  pointOfSale   PointOfSale @relation(fields: [pointOfSaleId], references: [id])
+  status        String   @default("EN_ATTENTE")
+  deliveryAddress String?
+  deliveryDate  DateTime?
+  notes         String?
+  total         Float    @default(0)
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  unitPrice Float   @default(0)
+  total     Float   @default(0)
+
+  @@map("order_items")
+}
+
+model CashRegisterSession {
+  id            Int      @id @default(autoincrement())
+  caisseId      Int
+  caisse        Caisse   @relation(fields: [caisseId], references: [id])
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  status        String   @default("OUVERTE")
+  openingBalance Float   @default(0)
+  closingBalance Float?
+  expectedClosing Float?
+  difference    Float?
+  notes         String?
+  openedAt      DateTime @default(now())
+  closedAt      DateTime?
+
+  sales         Sale[]
+  cashMovements CashMovement[]
+
+  @@map("cash_register_sessions")
+}
+
+model CashMovement {
+  id          Int      @id @default(autoincrement())
+  sessionId   Int
+  session     CashRegisterSession @relation(fields: [sessionId], references: [id])
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   @default("ENCAISSEMENT")
+  amount      Float    @default(0)
+  method      String   @default("ESPECES")
+  reference   String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("cash_movements")
+}
+
+model Alert {
+  id        Int      @id @default(autoincrement())
+  type      String
+  message   String
+  severity  String   @default("INFO")
+  isRead    Boolean  @default(false)
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@map("alerts")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  Int?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model LoginLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  ipAddress String?
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("login_logs")
+}
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+  group String @default("general")
+
+  @@map("settings")
+}
