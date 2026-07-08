@@ -38,13 +38,11 @@ export async function POST(request: NextRequest) {
 
     const { password: _, ...userWithoutPassword } = user
     const response = NextResponse.json({ user: userWithoutPassword, token })
-    response.cookies.set('lcg_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24,
-      path: '/',
-    })
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+    response.headers.set(
+      'Set-Cookie',
+      `lcg_token=${token}; HttpOnly${secure}; SameSite=Lax; Max-Age=86400; Path=/`
+    )
     return response
   } catch (error) {
     console.error('Login error:', error)
