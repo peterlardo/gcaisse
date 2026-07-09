@@ -49,17 +49,25 @@ export async function POST(request: NextRequest) {
       })
 
       if (body.destinationDepotId) {
-        const stock = await tx.stockAtLocation.findFirst({
+        const existingStock = await tx.stockAtLocation.findFirst({
           where: {
-            productId: body.productId,
-            depotId: body.destinationDepotId,
+            productId: parseInt(body.productId),
+            depotId: parseInt(body.destinationDepotId),
             pointOfSaleId: null,
           },
         })
-        if (stock) {
+        if (existingStock) {
           await tx.stockAtLocation.update({
-            where: { id: stock.id },
+            where: { id: existingStock.id },
             data: { quantity: { increment: parseInt(body.quantityProduced) || 0 } },
+          })
+        } else {
+          await tx.stockAtLocation.create({
+            data: {
+              productId: parseInt(body.productId),
+              depotId: parseInt(body.destinationDepotId),
+              quantity: parseInt(body.quantityProduced) || 0,
+            },
           })
         }
 
