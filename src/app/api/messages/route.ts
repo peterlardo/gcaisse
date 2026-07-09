@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
         senderId: user.id,
         recipientId: parseInt(body.recipientId),
         parentId: body.parentId ? parseInt(body.parentId) : null,
+        fileUrl: body.fileUrl || null,
+        fileName: body.fileName || null,
       },
       include: {
         sender: { select: { id: true, firstName: true, lastName: true, email: true } },
