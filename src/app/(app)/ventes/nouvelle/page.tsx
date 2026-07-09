@@ -115,28 +115,80 @@ export default function NouvelleVentePage() {
   }
 
   const generateReceipt = (sale: any) => {
+    const date = new Date(sale.createdAt)
+    const dateStr = date.toLocaleDateString('fr-FR')
+    const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    const paymentMethod = sale.payments?.[0]?.method || 'ESPÈCES'
+    const methodLabel = paymentMethod === 'ESPÈCES' ? 'Espèces' : paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : paymentMethod === 'CARTE_BANCAIRE' ? 'Carte bancaire' : 'Virement'
+
     return `
+      <!DOCTYPE html>
       <html><head><meta charset="utf-8"><title>Ticket de caisse</title>
-      <style>body{font-family:monospace;font-size:12px;max-width:300px;margin:0 auto;padding:20px}
-      h1{text-align:center;font-size:16px}h2{text-align:center;font-size:14px}
-      table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:4px 0}
-      .total{font-weight:bold;font-size:14px;border-top:2px solid #000;padding-top:8px}
-      .footer{text-align:center;margin-top:20px;font-size:10px;color:#666}
-      @media print{body{max-width:80mm;padding:0}}</style></head><body>
-      <h1>LCG - La Congolaise des Glaçons</h1>
-      <h2>TICKET DE CAISSE</h2>
-      <p>Réf: ${sale.reference}<br>Date: ${new Date(sale.createdAt).toLocaleDateString('fr-FR')}</p>
-      <hr>
-      <table><tr><th>Produit</th><th>Qté</th><th>Prix</th><th>Total</th></tr>
-      ${sale.items?.map((item: any) => `
-        <tr><td>${item.product.name}</td><td>${item.quantity}</td><td>${formatCurrency(item.unitPrice)}</td><td>${formatCurrency(item.total)}</td></tr>
-      `).join('') || ''}
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Courier New',monospace;font-size:11px;color:#1a1a2e;width:80mm;margin:0 auto;padding:12px 8px;line-height:1.4}
+        .header{text-align:center;padding-bottom:10px;border-bottom:2px solid #1e40af;margin-bottom:10px}
+        .logo{width:40px;height:40px;background:linear-gradient(135deg,#1e40af,#1a3399);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
+        .logo span{color:#fff;font-size:18px;font-weight:bold;font-family:Arial,sans-serif}
+        .company{font-size:12px;font-weight:bold;color:#1e40af;margin-bottom:2px}
+        .slogan{font-size:8px;color:#888;letter-spacing:2px;text-transform:uppercase}
+        .receipt-title{font-size:10px;font-weight:bold;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+        .meta{padding:8px 0;border-bottom:1px dashed #ddd;margin-bottom:8px;display:flex;justify-content:space-between;font-size:9px;color:#666}
+        table{width:100%;border-collapse:collapse;margin-bottom:8px}
+        th{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:1px;padding:4px 2px 6px;border-bottom:1px solid #ddd;text-align:left}
+        th:last-child{text-align:right}
+        th:nth-child(2){text-align:center}
+        th:nth-child(3){text-align:right}
+        td{padding:4px 2px;border-bottom:1px dotted #eee;vertical-align:top}
+        td:last-child{text-align:right;font-weight:bold}
+        td:nth-child(2){text-align:center}
+        td:nth-child(3){text-align:right}
+        .product-name{font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .divider{border-top:1px dashed #bbb;margin:6px 0}
+        .totals{padding:4px 0}
+        .total-row{display:flex;justify-content:space-between;padding:2px 0;font-size:10px}
+        .grand-total{display:flex;justify-content:space-between;font-size:14px;font-weight:bold;color:#1e40af;padding:6px 0;border-top:2px solid #1e40af;margin-top:4px}
+        .payment{text-align:center;padding:8px 0;font-size:9px;color:#555;border-top:1px dashed #ddd;margin-top:6px}
+        .thanks{text-align:center;padding:8px 0 4px;font-size:10px;color:#333}
+        .thanks-icon{font-size:14px}
+        .footer{text-align:center;font-size:7px;color:#aaa;padding-top:6px;border-top:1px solid #eee;margin-top:6px}
+        .barcode{text-align:center;font-size:20px;letter-spacing:2px;color:#ccc;margin:4px 0;font-family:'Courier New',monospace}
+        @media print{body{width:80mm;padding:0}}
+      </style></head><body>
+      <div class="header">
+        <div class="logo"><span>L</span></div>
+        <div class="company">LA CONGOLAISE DES GLAÇONS</div>
+        <div class="slogan">LCG Management</div>
+      </div>
+      <div class="receipt-title">Ticket de caisse</div>
+      <div class="meta">
+        <span>Réf: ${sale.reference}</span>
+        <span>${dateStr} à ${timeStr}</span>
+      </div>
+      <table>
+        <tr><th>Produit</th><th>Qté</th><th>P.U</th><th>Total</th></tr>
+        ${sale.items?.map((item: any) => `
+          <tr>
+            <td><div class="product-name">${item.product.name}</div></td>
+            <td>${item.quantity}</td>
+            <td>${formatCurrency(item.unitPrice)}</td>
+            <td>${formatCurrency(item.total)}</td>
+          </tr>
+        `).join('') || ''}
       </table>
-      <hr>
-      <p class="total">Total: ${formatCurrency(sale.total)}</p>
-      <p>Paiement: ${sale.payments?.[0]?.method || 'ESPÈCES'}</p>
-      <p>Merci de votre visite!</p>
-      <div class="footer">LCG - La Congolaise des Glaçons<br>Brazzaville, Congo</div>
+      <div class="divider"></div>
+      <div class="totals">
+        <div class="total-row"><span>Sous-total</span><span>${formatCurrency(sale.subtotal || sale.total)}</span></div>
+      </div>
+      <div class="grand-total"><span>Total</span><span>${formatCurrency(sale.total)}</span></div>
+      <div class="payment">Paiement : ${methodLabel}</div>
+      <div class="thanks"><span class="thanks-icon">🧊</span><br>Merci de votre visite !</div>
+      <div class="barcode">▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌</div>
+      <div class="footer">
+        LCG - La Congolaise des Glaçons<br>
+        Brazzaville, République du Congo<br>
+        Tel: +242 XX XXX XXX
+      </div>
       <script>window.print()</script>
       </body></html>
     `
