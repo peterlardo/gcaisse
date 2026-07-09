@@ -39,6 +39,8 @@ model User {
   alerts             Alert[]
   validatedDistributions Distribution[] @relation("ValidatedBy")
   receivedDeliveries     DeliveryNote[] @relation("ReceivedBy")
+  sentMessages           Message[]      @relation("SentMessages")
+  receivedMessages       Message[]      @relation("ReceivedMessages")
 
   @@map("users")
 }
@@ -535,6 +537,24 @@ model Setting {
   group String @default("general")
 
   @@map("settings")
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  subject     String
+  content     String
+  senderId    Int
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  recipientId Int
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  parentId    Int?
+  parent      Message? @relation("MessageReplies", fields: [parentId], references: [id])
+  replies     Message[] @relation("MessageReplies")
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("messages")
 }
 
 model NotificationLog {
