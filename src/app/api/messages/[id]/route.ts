@@ -39,7 +39,8 @@ export async function GET(
       })
     }
 
-    return NextResponse.json({ message })
+    const { fileData, ...safeMessage } = message
+    return NextResponse.json({ message: safeMessage })
   } catch (error) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }

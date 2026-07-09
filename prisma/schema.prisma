@@ -552,6 +552,7 @@ model Message {
   replies     Message[] @relation("MessageReplies")
   fileUrl     String?
   fileName    String?
+  fileData    String?
   isRead      Boolean  @default(false)
   readAt      DateTime?
   createdAt   DateTime @default(now())

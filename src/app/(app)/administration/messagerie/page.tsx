@@ -325,11 +325,11 @@ export default function MessageriePage() {
           </div>
           <div className="p-6">
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedMessage.content}</p>
-            {selectedMessage.fileUrl && (
+            {selectedMessage.fileName && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Pièce jointe</p>
                 <a
-                  href={selectedMessage.fileUrl}
+                  href={`/api/messages/${selectedMessage.id}/file`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
@@ -337,7 +337,7 @@ export default function MessageriePage() {
                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
-                  <span className="text-sm font-medium text-gray-700">{selectedMessage.fileName || 'Fichier joint'}</span>
+                  <span className="text-sm font-medium text-gray-700">{selectedMessage.fileName}</span>
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
@@ -413,12 +413,12 @@ export default function MessageriePage() {
                         </div>
                         <p className={`text-sm truncate mt-0.5 ${isUnread ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>{msg.subject}</p>
                         <p className="text-xs text-gray-400 truncate mt-0.5">{msg.content}</p>
-                        {msg.fileUrl && (
+                        {msg.fileName && (
                           <span className="inline-flex items-center gap-1 text-[10px] text-gray-400 mt-1">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
-                            {msg.fileName || 'Pièce jointe'}
+                            {msg.fileName}
                           </span>
                         )}
                       </div>
