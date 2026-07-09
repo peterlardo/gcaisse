@@ -41,6 +41,7 @@ model User {
   receivedDeliveries     DeliveryNote[] @relation("ReceivedBy")
   sentMessages           Message[]      @relation("SentMessages")
   receivedMessages       Message[]      @relation("ReceivedMessages")
+  expenses               Expense[]
 
   @@map("users")
 }
@@ -574,6 +575,34 @@ model NotificationLog {
   createdAt   DateTime @default(now())
 
   @@map("notification_logs")
+}
+
+model ExpenseCategory {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+
+  expenses Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  reference   String   @unique
+  categoryId  Int
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+  description String
+  amount      Float
+  paymentMethod String @default("ESPECES")
+  paidAt      DateTime @default(now())
+  notes       String?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("expenses")
 }
 
 model ClientSubscription {

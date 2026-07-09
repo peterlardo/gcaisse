@@ -8,17 +8,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const body = await request.json()
+    const data: any = {}
+    if (body.name !== undefined) data.name = body.name
+    if (body.type !== undefined) data.type = body.type
+    if (body.phone !== undefined) data.phone = body.phone
+    if (body.email !== undefined) data.email = body.email
+    if (body.address !== undefined) data.address = body.address
+    if (body.city !== undefined) data.city = body.city
+    if (body.notes !== undefined) data.notes = body.notes
+    if (body.reduceCredit !== undefined) {
+      const client = await prisma.client.findUnique({ where: { id: parseInt(params.id) } })
+      if (!client) return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
+      data.creditBalance = Math.max(0, client.creditBalance - body.reduceCredit)
+    }
     const client = await prisma.client.update({
       where: { id: parseInt(params.id) },
-      data: {
-        name: body.name,
-        type: body.type,
-        phone: body.phone,
-        email: body.email,
-        address: body.address,
-        city: body.city,
-        notes: body.notes,
-      },
+      data,
     })
 
     return NextResponse.json({ client })
