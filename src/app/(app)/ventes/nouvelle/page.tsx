@@ -20,6 +20,7 @@ export default function NouvelleVentePage() {
   const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
+  const [clients, setClients] = useState<any[]>([])
   const [clientType, setClientType] = useState('PARTICULIER')
   const [clientId, setClientId] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('ESPÈCES')
@@ -28,13 +29,16 @@ export default function NouvelleVentePage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    fetchProducts()
+    fetchData()
   }, [])
 
-  const fetchProducts = async () => {
-    const res = await fetch('/api/products?active=true')
-    const data = await res.json()
-    setProducts(data.products || [])
+  const fetchData = async () => {
+    const [prodRes, clientRes] = await Promise.all([
+      fetch('/api/products?active=true'),
+      fetch('/api/clients'),
+    ])
+    setProducts(prodRes.ok ? (await prodRes.json()).products || [] : [])
+    setClients(clientRes.ok ? (await clientRes.json()).clients || [] : [])
   }
 
   const filteredProducts = products.filter(p =>
@@ -165,6 +169,7 @@ export default function NouvelleVentePage() {
         <span>Réf: ${sale.reference}</span>
         <span>${dateStr} à ${timeStr}</span>
       </div>
+      ${sale.client ? `<div class="meta" style="border-top:none;padding-top:0"><span>Client: ${sale.client.name}</span></div>` : ''}
       <table>
         <tr><th>Produit</th><th>Qté</th><th>P.U</th><th>Total</th></tr>
         ${sale.items?.map((item: any) => `
@@ -319,6 +324,21 @@ export default function NouvelleVentePage() {
           <div className="card">
             <h3 className="text-base font-semibold text-gray-900 mb-3">Paiement</h3>
             <div className="space-y-3">
+              <div className="relative">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+                <select
+                  className="input-field pl-10"
+                  value={clientId || ''}
+                  onChange={(e) => setClientId(e.target.value ? parseInt(e.target.value) : null)}
+                >
+                  <option value="">Client anonyme</option>
+                  {clients.filter(c => c.isActive !== false).map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
+                  ))}
+                </select>
+              </div>
               <div className="relative">
                 <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
