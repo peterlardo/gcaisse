@@ -12,6 +12,8 @@ export default function StocksPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('stock')
   const [showAdjust, setShowAdjust] = useState(false)
+  const [filterType, setFilterType] = useState('')
+  const [filterLocation, setFilterLocation] = useState('')
 
   useEffect(() => { fetchData() }, [])
 
@@ -34,6 +36,18 @@ export default function StocksPage() {
   }
 
   const lowStock = stock.filter((s: any) => s.quantity <= s.product.minStockLevel)
+
+  const productTypes = [...new Set(stock.map((s: any) => s.product.type))].sort()
+  const locations = [...new Set(stock.map((s: any) => s.pointOfSale?.name || s.depot?.name || '—'))].sort()
+
+  const filteredStock = stock.filter((s: any) => {
+    if (filterType && s.product.type !== filterType) return false
+    if (filterLocation) {
+      const loc = s.pointOfSale?.name || s.depot?.name || '—'
+      if (loc !== filterLocation) return false
+    }
+    return true
+  })
 
   const handleAdjust = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -103,6 +117,51 @@ export default function StocksPage() {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <select
+            className="input-field pl-10"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="">Tous les types</option>
+            {productTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <select
+            className="input-field pl-10"
+            value={filterLocation}
+            onChange={(e) => setFilterLocation(e.target.value)}
+          >
+            <option value="">Tous les lieux</option>
+            {locations.map((loc) => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
+        </div>
+        {(filterType || filterLocation) && (
+          <button
+            onClick={() => { setFilterType(''); setFilterLocation('') }}
+            className="btn-ghost text-sm text-gray-500 hover:text-red-600"
+          >
+            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
       <div className="tabs">
         <button onClick={() => setTab('stock')} className={tab === 'stock' ? 'tab-active' : 'tab'}>Stock actuel</button>
         <button onClick={() => setTab('movements')} className={tab === 'movements' ? 'tab-active' : 'tab'}>Mouvements</button>
@@ -128,7 +187,7 @@ export default function StocksPage() {
               </tr>
             </thead>
             <tbody>
-              {stock.map((s: any) => (
+              {filteredStock.map((s: any) => (
                 <tr key={s.id}>
                   <td className="font-medium">{s.product.name}</td>
                   <td className="text-xs">{s.product.type}</td>
