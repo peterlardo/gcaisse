@@ -89,10 +89,24 @@ export async function GET() {
         payments: { select: { method: true, amount: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 10,
+      take: 50,
+    })
+
+    const allSalesProducts = await prisma.product.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    })
+
+    const allSalesClients = await prisma.client.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     })
 
     return NextResponse.json({
+      allProducts: allSalesProducts,
+      allClients: allSalesClients,
       todayRevenue,
       weekRevenue,
       monthRevenue,

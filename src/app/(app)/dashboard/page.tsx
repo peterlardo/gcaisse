@@ -9,6 +9,8 @@ import { Bar, Doughnut } from 'react-chartjs-2'
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement)
 
 interface DashboardData {
+  allProducts: { id: number; name: string }[]
+  allClients: { id: number; name: string }[]
   todayRevenue: number
   weekRevenue: number
   monthRevenue: number
@@ -46,6 +48,9 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [filterProduct, setFilterProduct] = useState('')
+  const [filterClient, setFilterClient] = useState('')
+  const [filterPayment, setFilterPayment] = useState('')
 
   useEffect(() => {
     fetchDashboard()
@@ -138,7 +143,42 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h3 className="text-base font-semibold text-gray-900 mb-4">Dernières ventes</h3>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 className="text-base font-semibold text-gray-900">Dernières ventes</h3>
+            <div className="flex gap-2 flex-wrap">
+              <select
+                className="input-field w-auto text-xs py-1.5"
+                value={filterProduct}
+                onChange={e => setFilterProduct(e.target.value)}
+              >
+                <option value="">Tous produits</option>
+                {data?.allProducts?.map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+              <select
+                className="input-field w-auto text-xs py-1.5"
+                value={filterClient}
+                onChange={e => setFilterClient(e.target.value)}
+              >
+                <option value="">Tous clients</option>
+                {data?.allClients?.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+              <select
+                className="input-field w-auto text-xs py-1.5"
+                value={filterPayment}
+                onChange={e => setFilterPayment(e.target.value)}
+              >
+                <option value="">Tous moyens</option>
+                <option value="ESPÈCES">Espèces</option>
+                <option value="MOBILE_MONEY">Mobile Money</option>
+                <option value="CARTE_BANCAIRE">Carte</option>
+                <option value="VIREMENT">Virement</option>
+              </select>
+            </div>
+          </div>
           {data?.recentSales && data.recentSales.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="table">
@@ -152,27 +192,34 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recentSales.map(sale => (
-                    <tr key={sale.id}>
-                      <td className="text-sm max-w-[160px] truncate">
-                        {sale.items?.map(i => i.product?.name).join(', ')}
-                      </td>
-                      <td className="text-center text-sm">
-                        {sale.items?.reduce((s, i) => s + i.quantity, 0)}
-                      </td>
-                      <td className="text-sm">{sale.client?.name || 'Anonyme'}</td>
-                      <td className="text-right font-bold text-sm">{formatCurrency(sale.total)}</td>
-                      <td>
-                        <span className="badge bg-gray-100 text-gray-700 text-xs">
-                          {sale.payments?.[0]?.method === 'ESPÈCES' ? 'Espèces'
-                            : sale.payments?.[0]?.method === 'MOBILE_MONEY' ? 'Mobile Money'
-                            : sale.payments?.[0]?.method === 'CARTE_BANCAIRE' ? 'Carte'
-                            : sale.payments?.[0]?.method === 'VIREMENT' ? 'Virement'
-                            : '—'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {data.recentSales
+                    .filter(sale => {
+                      if (filterProduct && !sale.items?.some(i => i.product?.name === filterProduct)) return false
+                      if (filterClient && (sale.client?.name || 'Anonyme') !== filterClient) return false
+                      if (filterPayment && (sale.payments?.[0]?.method || '') !== filterPayment) return false
+                      return true
+                    })
+                    .map(sale => (
+                      <tr key={sale.id}>
+                        <td className="text-sm max-w-[160px] truncate">
+                          {sale.items?.map(i => i.product?.name).join(', ')}
+                        </td>
+                        <td className="text-center text-sm">
+                          {sale.items?.reduce((s, i) => s + i.quantity, 0)}
+                        </td>
+                        <td className="text-sm">{sale.client?.name || 'Anonyme'}</td>
+                        <td className="text-right font-bold text-sm">{formatCurrency(sale.total)}</td>
+                        <td>
+                          <span className="badge bg-gray-100 text-gray-700 text-xs">
+                            {sale.payments?.[0]?.method === 'ESPÈCES' ? 'Espèces'
+                              : sale.payments?.[0]?.method === 'MOBILE_MONEY' ? 'Mobile Money'
+                              : sale.payments?.[0]?.method === 'CARTE_BANCAIRE' ? 'Carte'
+                              : sale.payments?.[0]?.method === 'VIREMENT' ? 'Virement'
+                              : '—'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
