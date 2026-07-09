@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       data: {
         name: body.name,
         type: body.type,
-        categoryId: body.categoryId,
+        categoryId: parseInt(body.categoryId),
         unit: body.unit,
         priceParticulier: parseFloat(body.priceParticulier) || 0,
         priceProfessionnel: parseFloat(body.priceProfessionnel) || 0,
@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         minStockLevel: parseInt(body.minStockLevel) || 0,
         conservationDuration: body.conservationDuration ? parseInt(body.conservationDuration) : null,
         description: body.description,
-        isActive: body.isActive,
+        isActive: body.isActive === 'true' || body.isActive === true,
       },
     })
 
