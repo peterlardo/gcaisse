@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 const menuItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', roles: ['ADMIN', 'DIRECTION', 'RESPONSABLE_STOCK', 'RESPONSABLE_PRODUCTION', 'CAISSIER'] },
@@ -13,6 +14,7 @@ const menuItems = [
   { href: '/caisse', label: 'Caisse', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', roles: ['ADMIN', 'DIRECTION', 'CAISSIER'] },
   { href: '/production', label: 'Production', icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', roles: ['ADMIN', 'DIRECTION', 'RESPONSABLE_PRODUCTION'] },
   { href: '/distribution', label: 'Distribution', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2-1 2 1 2-1 2 1 2-1 2 1zM6 14h.01M8 10h.01M17 13l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2', roles: ['ADMIN', 'DIRECTION', 'RESPONSABLE_PRODUCTION', 'RESPONSABLE_STOCK'] },
+  { href: '/livraisons', label: 'Livraisons', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: ['ADMIN', 'DIRECTION', 'RESPONSABLE_STOCK'] },
   { href: '/reservations', label: 'Réservations', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', roles: ['ADMIN', 'DIRECTION', 'CAISSIER'] },
   { href: '/commandes', label: 'Commandes', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', roles: ['ADMIN', 'DIRECTION', 'CAISSIER'] },
   { href: '/clients', label: 'Clients', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z', roles: ['ADMIN', 'DIRECTION', 'CAISSIER'] },
@@ -26,7 +28,7 @@ const menuItems = [
 
 const menuGroups = [
   { label: 'Principal', items: ['/dashboard', '/ventes', '/produits', '/stocks', '/caisse'] },
-  { label: 'Opérations', items: ['/production', '/distribution', '/reservations', '/commandes'] },
+  { label: 'Opérations', items: ['/production', '/distribution', '/livraisons', '/reservations', '/commandes'] },
   { label: 'Données', items: ['/clients', '/depots', '/points-de-vente', '/statistiques', '/rapports'] },
   { label: 'Système', items: ['/administration/notifications', '/administration'] },
 ]
@@ -103,6 +105,89 @@ function Sidebar({ user, pathname, onNav }: { user: any; pathname: string; onNav
   )
 }
 
+function AlertBell() {
+  const [alerts, setAlerts] = useState<any[]>([])
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const fetchAlerts = async () => {
+    const res = await fetch('/api/alerts')
+    if (res.ok) setAlerts((await res.json()).alerts || [])
+  }
+
+  useEffect(() => { fetchAlerts(); const id = setInterval(fetchAlerts, 30000); return () => clearInterval(id) }, [])
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  const runCheck = async () => {
+    toast.success('Vérification en cours...')
+    const res = await fetch('/api/alerts/check', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      toast.success(`${data.created} alerte(s) générée(s)`)
+      fetchAlerts()
+    }
+  }
+
+  const markRead = async () => {
+    await fetch('/api/alerts', { method: 'POST' })
+    setAlerts([])
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(!open)} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        {alerts.length > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center min-w-[18px] min-h-[18px] leading-none">
+            {alerts.length > 9 ? '9+' : alerts.length}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 max-h-[70vh] flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-sm">Alertes ({alerts.length})</h3>
+            <div className="flex gap-2">
+              <button onClick={runCheck} className="text-xs text-lcg-600 hover:underline">Vérifier</button>
+              {alerts.length > 0 && <button onClick={markRead} className="text-xs text-gray-400 hover:underline">Tout lu</button>}
+            </div>
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {alerts.length === 0 ? (
+              <div className="p-6 text-center text-sm text-gray-400">Aucune alerte</div>
+            ) : (
+              alerts.map((a: any) => (
+                <Link
+                  key={a.id}
+                  href={a.link || '#'}
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${a.severity === 'CRITICAL' ? 'bg-red-500' : a.severity === 'WARNING' ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                    <div>
+                      <p className="text-sm text-gray-700">{a.message}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{new Date(a.createdAt).toLocaleDateString('fr-FR')}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
@@ -153,7 +238,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <main className="flex-1 min-h-screen overflow-auto">
-        <div className="p-4 lg:p-6 pt-16 lg:pt-6 max-w-7xl mx-auto">
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 lg:px-6 py-2 flex items-center justify-end">
+          <AlertBell />
+        </div>
+        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
           {showBackButton && (
             <Link
               href="/dashboard"

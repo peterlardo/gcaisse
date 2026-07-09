@@ -23,6 +23,8 @@ export default function NouvelleVentePage() {
   const [clients, setClients] = useState<any[]>([])
   const [clientType, setClientType] = useState('PARTICULIER')
   const [clientId, setClientId] = useState<number | null>(null)
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [paymentStatus, setPaymentStatus] = useState('COMPTANT')
   const [paymentMethod, setPaymentMethod] = useState('ESPÈCES')
   const [paidAmount, setPaidAmount] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,6 +41,11 @@ export default function NouvelleVentePage() {
     ])
     setProducts(prodRes.ok ? (await prodRes.json()).products || [] : [])
     setClients(clientRes.ok ? (await clientRes.json()).clients || [] : [])
+  }
+
+  const handleClientChange = (id: number | null) => {
+    setClientId(id)
+    setSelectedClient(id ? clients.find(c => c.id === id) : null)
   }
 
   const filteredProducts = products.filter(p =>
@@ -84,6 +91,8 @@ export default function NouvelleVentePage() {
     setLoading(true)
 
     try {
+      const paid = paymentStatus === 'COMPTANT' ? total : (parseFloat(paidAmount) || 0)
+
       const res = await fetch('/api/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,8 +101,8 @@ export default function NouvelleVentePage() {
           clientType,
           clientId,
           paymentMethod,
-          paidAmount: total,
-          status: 'COMPTANT',
+          paidAmount: paid,
+          status: paymentStatus,
         }),
       })
 
@@ -124,6 +133,8 @@ export default function NouvelleVentePage() {
     const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     const paymentMethod = sale.payments?.[0]?.method || 'ESPÈCES'
     const methodLabel = paymentMethod === 'ESPÈCES' ? 'Espèces' : paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : paymentMethod === 'CARTE_BANCAIRE' ? 'Carte bancaire' : 'Virement'
+    const statusLabel = sale.status === 'COMPTANT' ? 'Payé' : sale.status === 'CREDIT' ? 'Crédit' : 'Paiement partiel'
+    const paidAmt = sale.paidAmount || 0
 
     return `
       <!DOCTYPE html>
@@ -186,7 +197,8 @@ export default function NouvelleVentePage() {
         <div class="total-row"><span>Sous-total</span><span>${formatCurrency(sale.subtotal || sale.total)}</span></div>
       </div>
       <div class="grand-total"><span>Total</span><span>${formatCurrency(sale.total)}</span></div>
-      <div class="payment">Paiement : ${methodLabel}</div>
+      ${sale.status !== 'COMPTANT' ? `<div class="total-row" style="font-size:10px"><span>Payé</span><span>${formatCurrency(paidAmt)}</span></div><div class="total-row" style="font-size:10px;color:#dc2626"><span>Reste</span><span>${formatCurrency(sale.total - paidAmt)}</span></div>` : ''}
+      <div class="payment">${statusLabel} - ${methodLabel}</div>
       <div class="thanks"><span class="thanks-icon">🧊</span><br>Merci de votre visite !</div>
       <div class="barcode">▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌</div>
       <div class="footer">
@@ -331,7 +343,7 @@ export default function NouvelleVentePage() {
                 <select
                   className="input-field pl-10"
                   value={clientId || ''}
-                  onChange={(e) => setClientId(e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) => handleClientChange(e.target.value ? parseInt(e.target.value) : null)}
                 >
                   <option value="">Client anonyme</option>
                   {clients.filter(c => c.isActive !== false).map((c: any) => (
@@ -339,6 +351,39 @@ export default function NouvelleVentePage() {
                   ))}
                 </select>
               </div>
+              {selectedClient && selectedClient.creditBalance > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
+                  <span className="text-amber-700 font-medium">Solde crédit: {formatCurrency(selectedClient.creditBalance)}</span>
+                </div>
+              )}
+              <div className="relative">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <select
+                  className="input-field pl-10"
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value)}
+                >
+                  <option value="COMPTANT">Comptant</option>
+                  <option value="CREDIT">Crédit</option>
+                  <option value="PARTIEL">Paiement partiel</option>
+                </select>
+              </div>
+              {paymentStatus !== 'COMPTANT' && (
+                <div>
+                  <label className="label-field">Montant reçu</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                    placeholder="0"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Reste à payer: {formatCurrency(total - (parseFloat(paidAmount) || 0))}</p>
+                </div>
+              )}
               <div className="relative">
                 <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />

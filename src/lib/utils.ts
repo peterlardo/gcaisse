@@ -117,6 +117,16 @@ export function getPaymentMethodLabel(method: string): string {
   return labels[method] || method
 }
 
+export function getDeliveryNoteStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    EN_PRÉPARATION: 'En préparation',
+    EN_TRANSIT: 'En transit',
+    LIVRÉ: 'Livré',
+    ANNULÉ: 'Annulé',
+  }
+  return labels[status] || status
+}
+
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
     EN_ATTENTE: 'bg-yellow-100 text-yellow-800',

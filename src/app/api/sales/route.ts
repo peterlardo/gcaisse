@@ -163,6 +163,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      if (body.clientId && sale.status === 'CREDIT') {
+        const creditAmount = total - (body.paidAmount || 0)
+        if (creditAmount > 0) {
+          await tx.client.update({
+            where: { id: body.clientId },
+            data: { creditBalance: { increment: creditAmount } },
+          })
+        }
+      }
+
       return sale
     })
 
