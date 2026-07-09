@@ -50,6 +50,18 @@ export default function MessageriePage() {
   useEffect(() => { if (view === 'inbox' || view === 'sent') fetchMessages(view as 'inbox' | 'sent') }, [page, view])
   useEffect(() => { fetchUsers() }, [])
 
+  const fileToBase64 = (f: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.split(',')[1])
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(f)
+    })
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!recipientId || !subject.trim() || !content.trim()) {
@@ -58,25 +70,12 @@ export default function MessageriePage() {
     }
     setSending(true)
     try {
-      let fileUrl = ''
-      let fileName = ''
+      let fileData: { name: string; data: string; type: string } | null = null
 
       if (file) {
         setUploading(true)
-        const fd = new FormData()
-        fd.append('file', file)
-        const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json()
-          fileUrl = uploadData.fileUrl
-          fileName = uploadData.fileName
-        } else {
-          const errData = await uploadRes.json()
-          toast.error(errData.error || 'Erreur upload')
-          setSending(false)
-          setUploading(false)
-          return
-        }
+        const base64 = await fileToBase64(file)
+        fileData = { name: file.name, data: base64, type: file.type }
         setUploading(false)
       }
 
@@ -88,8 +87,7 @@ export default function MessageriePage() {
           subject: subject.trim(),
           content: content.trim(),
           parentId: selectedMessage?.id || null,
-          fileUrl: fileUrl || null,
-          fileName: fileName || null,
+          file: fileData,
         }),
       })
       if (res.ok) {
