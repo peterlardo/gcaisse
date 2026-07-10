@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { formatDate, formatDateTime, formatCurrency, getDeliveryNoteStatusLabel, getStatusColor } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { generateDeliveryNotePDF } from '@/lib/invoice'
 import toast from 'react-hot-toast'
 
 const STATUS_ACTIONS: Record<string, { label: string; action: string; color: string; roles: string[] }[]> = {
@@ -140,6 +141,30 @@ export default function LivraisonsPage() {
     }
   }
 
+  const handleDownloadPDF = (note: any) => {
+    const destination = note.destDepot?.name || note.destPointOfSale?.name || 'Client direct'
+    generateDeliveryNotePDF({
+      reference: note.reference,
+      date: new Date(note.createdAt),
+      sourceDepot: note.sourceDepot?.name || '—',
+      destinationName: destination,
+      clientName: note.clientName,
+      clientPhone: note.clientPhone,
+      clientAddress: note.clientAddress,
+      notes: note.notes,
+      items: note.items.map((i: any) => ({
+        name: i.product?.name || 'Produit',
+        quantity: i.quantity,
+        quantityReceived: i.quantityReceived,
+        difference: i.difference,
+      })),
+      status: note.status,
+      createdBy: `${note.user?.firstName || ''} ${note.user?.lastName || ''}`.trim(),
+      receivedBy: note.receivedBy ? `${note.receivedBy.firstName} ${note.receivedBy.lastName}` : undefined,
+      receivedAt: note.receivedAt ? new Date(note.receivedAt) : undefined,
+    })
+  }
+
   const canEdit = user?.role === 'ADMIN' || user?.role === 'DIRECTION' || user?.role === 'RESPONSABLE_STOCK'
 
   return (
@@ -265,6 +290,15 @@ export default function LivraisonsPage() {
                           Réceptionner
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDownloadPDF(n)}
+                        className="btn-ghost btn-sm text-xs"
+                        title="Télécharger le PDF"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </button>
                       {(STATUS_ACTIONS[n.status] || []).map(a =>
                         a.roles.includes(user?.role || '') && a.action !== 'LIVRÉ' && (
                           <button
@@ -361,11 +395,19 @@ export default function LivraisonsPage() {
                 <h2 className="text-lg font-bold">{detailNote.reference}</h2>
                 <span className={`badge ${getStatusColor(detailNote.status)}`}>{getDeliveryNoteStatusLabel(detailNote.status)}</span>
               </div>
-              <button type="button" onClick={() => setDetailNote(null)} className="btn-ghost btn-sm p-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => handleDownloadPDF(detailNote)} className="btn-primary btn-sm text-xs">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Télécharger
+                </button>
+                <button type="button" onClick={() => setDetailNote(null)} className="btn-ghost btn-sm p-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="modal-body space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
