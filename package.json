@@ -20,6 +20,7 @@
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.4",
     "date-fns": "^4.1.0",
+    "docx": "^9.7.1",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",

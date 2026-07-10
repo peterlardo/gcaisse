@@ -37,11 +37,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const caisseId = parseInt(body.caisseId)
+    const openingBalance = parseFloat(body.openingBalance) || 0
+
+    if (!caisseId) {
+      return NextResponse.json({ error: 'Caisse invalide' }, { status: 400 })
+    }
+
+    const existing = await prisma.cashRegisterSession.findFirst({
+      where: { caisseId, status: 'OUVERTE' },
+    })
+    if (existing) {
+      return NextResponse.json({ error: 'Une session est déjà ouverte pour cette caisse' }, { status: 409 })
+    }
+
     const session = await prisma.cashRegisterSession.create({
       data: {
-        caisseId: body.caisseId,
+        caisseId,
         userId: user.id,
-        openingBalance: parseFloat(body.openingBalance) || 0,
+        openingBalance,
         status: 'OUVERTE',
       },
       include: { caisse: { include: { pointOfSale: true } } },
@@ -49,6 +63,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ session }, { status: 201 })
   } catch (error) {
+    console.error('POST /api/caisse/sessions:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

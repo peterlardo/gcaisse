@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -42,6 +43,8 @@ model User {
   sentMessages           Message[]      @relation("SentMessages")
   receivedMessages       Message[]      @relation("ReceivedMessages")
   expenses               Expense[]
+  journalEntries          JournalEntry[]
+  validatedEntries        JournalEntry[] @relation("ValidatedEntry")
 
   @@map("users")
 }
@@ -603,6 +606,56 @@ model Expense {
   updatedAt   DateTime @updatedAt
 
   @@map("expenses")
+}
+
+model AccountingAccount {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  type        String   @default("ACTIF") // ACTIF | PASSIF | CHARGE | PRODUIT
+  nature      String   @default("DEBIT") // DEBIT | CREDIT (solde normal)
+  parentId    Int?
+  parent      AccountingAccount? @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children    AccountingAccount[] @relation("AccountHierarchy")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  journalLines JournalEntryLine[]
+  @@map("accounting_accounts")
+}
+
+model JournalEntry {
+  id          Int      @id @default(autoincrement())
+  reference   String   @unique
+  label       String
+  description String?
+  date        DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  validated   Boolean  @default(false)
+  validatedAt DateTime?
+  validatedById Int?
+  validatedBy   User?    @relation("ValidatedEntry", fields: [validatedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lines JournalEntryLine[]
+  @@map("journal_entries")
+}
+
+model JournalEntryLine {
+  id          Int      @id @default(autoincrement())
+  entryId     Int
+  entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId   Int
+  account     AccountingAccount @relation(fields: [accountId], references: [id])
+  label       String?
+  debit       Float    @default(0)
+  credit      Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@map("journal_entry_lines")
 }
 
 model ClientSubscription {
