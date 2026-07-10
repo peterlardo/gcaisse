@@ -67,8 +67,8 @@ function Sidebar({ user, pathname, onNav }: { user: any; pathname: string; onNav
                     key={item.href}
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      isActive(item.href)
-                        ? 'bg-white/15 text-white shadow-sm'
+                       isActive(item.href)
+                        ? 'bg-white text-lcg-800 shadow-sm'
                         : 'text-blue-100/70 hover:bg-white/10 hover:text-white'
                     }`}
                     onClick={onNav}
