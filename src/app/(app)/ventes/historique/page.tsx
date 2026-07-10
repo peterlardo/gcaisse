@@ -8,9 +8,18 @@ import { downloadExcel } from '@/lib/export'
 
 export default function HistoriqueVentesPage() {
   const [sales, setSales] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [points, setPoints] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ dateFrom: '', dateTo: '' })
+  const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', userId: '', pointOfSaleId: '' })
   const [selectedSale, setSelectedSale] = useState<any>(null)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/admin/users').then(r => r.json()).then(d => setUsers(d.users || [])).catch(() => {}),
+      fetch('/api/pointofsale').then(r => r.json()).then(d => setPoints(d.pointsOfSale || [])).catch(() => {}),
+    ])
+  }, [])
 
   useEffect(() => { fetchSales() }, [])
 
@@ -20,6 +29,8 @@ export default function HistoriqueVentesPage() {
       const params = new URLSearchParams()
       if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
       if (filters.dateTo) params.set('dateTo', filters.dateTo)
+      if (filters.userId) params.set('userId', filters.userId)
+      if (filters.pointOfSaleId) params.set('pointOfSaleId', filters.pointOfSaleId)
       const res = await fetch(`/api/sales?${params}`)
       const data = await res.json()
       setSales(data.sales || [])
@@ -76,9 +87,33 @@ export default function HistoriqueVentesPage() {
       </div>
 
       <div className="card">
-        <div className="flex flex-wrap gap-3 mb-4">
-          <input type="date" className="input-field w-auto" value={filters.dateFrom} onChange={e => setFilters({...filters, dateFrom: e.target.value})} />
-          <input type="date" className="input-field w-auto" value={filters.dateTo} onChange={e => setFilters({...filters, dateTo: e.target.value})} />
+        <div className="flex flex-wrap gap-3 mb-4 items-end">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Du</label>
+            <input type="date" className="input-field w-auto" value={filters.dateFrom} onChange={e => setFilters({...filters, dateFrom: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Au</label>
+            <input type="date" className="input-field w-auto" value={filters.dateTo} onChange={e => setFilters({...filters, dateTo: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Vendeur</label>
+            <select className="input-field w-auto" value={filters.userId} onChange={e => setFilters({...filters, userId: e.target.value})}>
+              <option value="">Tous</option>
+              {users.map((u: any) => (
+                <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Point de vente</label>
+            <select className="input-field w-auto" value={filters.pointOfSaleId} onChange={e => setFilters({...filters, pointOfSaleId: e.target.value})}>
+              <option value="">Tous</option>
+              {points.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
           <button onClick={fetchSales} className="btn-primary">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
             Filtrer
