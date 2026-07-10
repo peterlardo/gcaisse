@@ -29,6 +29,7 @@ export default function LivraisonsPage() {
   const [showModal, setShowModal] = useState(false)
   const [detailNote, setDetailNote] = useState<any>(null)
   const [receiveModal, setReceiveModal] = useState<any>(null)
+  const [lastCreated, setLastCreated] = useState<any>(null)
 
   const fetchData = async () => {
     setLoading(true)
@@ -80,8 +81,10 @@ export default function LivraisonsPage() {
     })
 
     if (res.ok) {
+      const data = await res.json()
       toast.success('Bon de livraison créé')
       setShowModal(false)
+      setLastCreated(data.note)
       fetchData()
     } else {
       const err = await res.json()
@@ -241,7 +244,32 @@ export default function LivraisonsPage() {
 
       {loading ? (
         <div className="card"><div className="loader"><div className="loader-spinner" /></div></div>
-      ) : notes.length === 0 ? (
+      ) : (
+        <>
+        {lastCreated && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between animate-fade-in">
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">Bon créé : {lastCreated.reference}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">Téléchargez le bon de livraison pour l'imprimer</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { handleDownloadPDF(lastCreated); setLastCreated(null) }}
+                className="btn-primary btn-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Télécharger le PDF
+              </button>
+              <button onClick={() => setLastCreated(null)} className="btn-ghost btn-sm">Fermer</button>
+            </div>
+          </div>
+        )}
+        </>)
+      }
+
+      {notes.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <div className="empty-state-icon">
@@ -292,12 +320,13 @@ export default function LivraisonsPage() {
                       )}
                       <button
                         onClick={() => handleDownloadPDF(n)}
-                        className="btn-ghost btn-sm text-xs"
+                        className="btn-primary btn-sm text-xs"
                         title="Télécharger le PDF"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
+                        PDF
                       </button>
                       {(STATUS_ACTIONS[n.status] || []).map(a =>
                         a.roles.includes(user?.role || '') && a.action !== 'LIVRÉ' && (
